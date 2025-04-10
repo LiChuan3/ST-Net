@@ -39,11 +39,11 @@ if __name__ == '__main__':
     parser.add_argument('--seasonal_patterns', type=str, default='Monthly', help='subset for M4')
 
     # DMMFNet
-    parser.add_argument('--e_layers', type=int, default=2, help='num of encoder layers')
+    parser.add_argument('--e_layers', type=int, default=3, help='num of encoder layers')
     parser.add_argument('--num_layers_intra_trend', type=int, default=1, help='num of Trend IPM layers')
     parser.add_argument('--num_layers_intra_season', type=int, default=1, help='num of Seasonal ITC layers')
     parser.add_argument('--season_top_k', type=int, default=3, help='for seasonal figures')
-    parser.add_argument('--num_kernels', type=int, default=4, help='for Inception Feature extraction')
+    parser.add_argument('--num_kernels', type=int, default=3, help='for Inception Feature extraction')
     parser.add_argument('--num_experts', type=int, default=3, help='for Patch MOE Feature extraction')
     parser.add_argument('--patch_sizes', nargs='+', type=int, default=[8, 6, 4], help='for patch size')
     parser.add_argument('--choose_k', type=int, default=1, help='choose topk expers from MOE')

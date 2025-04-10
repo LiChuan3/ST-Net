@@ -4,3 +4,4 @@ test_results
 result.txt
 __pycache__
 checkpoints
+.idea

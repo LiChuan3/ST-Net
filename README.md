@@ -57,7 +57,7 @@ The results of transfer learning: Effect of Each Module in ST-Net, with Downsamp
 
 1. Install conda environment: ```conda env create -f environment.yml```
 
-2. Download data. You can download the datasets from [Google Driver](https://drive.google.com/u/0/uc?id=1NF7VEefXCmXuWNbnNe858WvQAkJ_7wuP&export=download), [Baidu Driver](https://pan.baidu.com/share/init?surl=r3KhGd0Q9PJIUZdfEYoymg&pwd=i9iy) or [Kaggle Datasets](https://www.kaggle.com/datasets/wentixiaogege/time-series-dataset). All datasets are pre-processed and can be used easily. Create a seperate folder ```./dataset``` and put all the files in the directory.
+2. Download data. You can download the datasets from [Google Driver](https://drive.google.com/u/0/uc?id=1NF7VEefXCmXuWNbnNe858WvQAkJ_7wuP&export=download), [Baidu Driver](https://pan.baidu.com/s/1JAHUxFh9BtYS7m1_3jmU6g?pwd=xcmw). All datasets are pre-processed and can be used easily. Create a seperate folder ```./dataset``` and put all the files in the directory.
 
 3. Train the model. We provide the experiment scripts of all benchmarks under the folder `./scripts`.  You can reproduce the experiments by:
 
@@ -71,10 +71,11 @@ All experiments were conducted on NVIDIA RTX 3090 24GB GPUs. You can adjust the 
 We appreciate the following github repos for their valuable code and effort:
 - Time-Series-Library (https://github.com/thuml/Time-Series-Library)
 - Autoformer (https://github.com/thuml/Autoformer)
-- FEDformer (https://github.com/MAZiqing/FEDformer)
-- DLinear (https://github.com/cure-lab/LTSF-Linear)
-- PatchTST (https://github.com/yuqinie98/PatchTST)
 - TimeMixer (https://github.com/kwuking/TimeMixer)
+- PatchTST (https://github.com/yuqinie98/PatchTST)
+- DLinear (https://github.com/cure-lab/LTSF-Linear)
 - RevIN (https://github.com/ts-kim/RevIN)
+- FEDformer (https://github.com/MAZiqing/FEDformer)
+
 
 

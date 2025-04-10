@@ -1,6 +1,6 @@
 export CUDA_VISIBLE_DEVICES=0,1,2
 
-model_name=DMMFnet
+model_name=STNet
 
 seq_len=96
 e_layers=3

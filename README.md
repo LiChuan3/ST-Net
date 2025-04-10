@@ -4,12 +4,11 @@
 <div align="center">
 </div>
 
-## Model Overview
+## 1. Model Overview
 
-We introduce ST-Net, a two-part system that separates seasonal and trend components using two specialized encoders: a CNN (Intra Time Image Convolutional) for capturing non-linear seasonal patterns and an MLP
-(Intra-Patch Mixture-of-Experts) for identifying linear trends.
+We introduce ST-Net, a two-part system that separates seasonal and trend components using two specialized encoders: a CNN (Intra Time Image Convolutional) for capturing non-linear seasonal patterns and an MLP (Intra-Patch Mixture-of-Experts) for identifying linear trends.
 
-### Architecture
+### 1.1 Architecture
 
 Dual-branch architecture consists of an MLP-based linear stream and a CNN-based non-linear stream.
 
@@ -29,9 +28,9 @@ The ITC module employs multi-cycle analysis to extract the main cyclical compone
 <img src="./figures/ITC.png" alt="" align=center />
 </p>
 
-## Results
+## 2. Results
 
-### Forecasting with Unified Experimental Settings
+### 2.1 Forecasting with Unified Experimental Settings
 
 In the unified experimental settings, ST-Net achieves the best performance on 75% of the cases using the MSE metric and 62.5% of the cases using the MAE metric.
 
@@ -39,7 +38,7 @@ In the unified experimental settings, ST-Net achieves the best performance on 75
 <img src="./figures/Result.png" alt="" style="width: 80%;" align=center />
 </p>
 
-### Transfer Learning
+### 2.2 Transfer Learning
 Pretraining on source datasets and evaluating through zero-shot prediction and fine-tuning demonstrates excellent generalization and transferability. The partial fine-tuning strategy is a lightweight method
 that requires fewer computational resources and reduces the number of parameters by 70.1%. Despite this, it achieves prediction accuracy nearly as high as PatchTST full-tuning, showing that ST-Net’s dual-branch architecture effectively captures transferable seasonal-trend patterns.
 
@@ -47,14 +46,14 @@ that requires fewer computational resources and reduces the number of parameters
 <img src="./figures/Transfer Result.png" alt="" style="width: 80%;" align=center />
 </p>
 
-### Ablation Study
+### 2.3 Ablation Study
 The results of transfer learning: Effect of Each Module in ST-Net, with Downsampling (shortened to D-s).
 
 <p align="center">
 <img src="./figures/Ablation Study.png" alt="" style="width: 80%;" align=center />
 </p>
 
-## Getting Started
+## 3. Getting Started
 
 1. Install conda environment: ```conda env create -f environment.yml```
 

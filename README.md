@@ -65,7 +65,7 @@ The results of transfer learning: Effect of Each Module in ST-Net, with Downsamp
 bash scripts/STNet_ETTh1.sh
 ```
 
-All experiments were conducted on NVIDIA RTX 3090 24GB GPUs. You can adjust the hyperparameters based on your needs (e.g. batch size, patch length, lookback windows and prediction lengths, num of ST-blocks).
+All experiments were conducted on NVIDIA RTX 3090 24GB GPUs. You can adjust the hyperparameters based on your needs (e.g. batch size, patch sizes, lookback windows and prediction lengths, num of ST-blocks).
 ## Acknowledgement
 
 We appreciate the following github repos for their valuable code and effort:

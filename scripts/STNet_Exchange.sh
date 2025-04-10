@@ -18,7 +18,6 @@ d_model=16
 d_ff=16
 batch_size=32
 top_k=2
-channel_independence=1
 
 python -u ../run.py \
   --is_training 1 \
@@ -50,7 +49,6 @@ python -u ../run.py \
   --down_sampling_window $down_sampling_window \
   --down_sampling_method conv \
   --top_k $top_k \
-  --channel_independence $channel_independence \
 
 python -u ../run.py \
   --is_training 1 \
@@ -82,7 +80,6 @@ python -u ../run.py \
   --down_sampling_window $down_sampling_window \
   --down_sampling_method conv \
   --top_k $top_k \
-  --channel_independence $channel_independence \
 
 python -u ../run.py \
   --is_training 1 \
@@ -114,7 +111,6 @@ python -u ../run.py \
   --down_sampling_window $down_sampling_window \
   --down_sampling_method conv \
   --top_k $top_k \
-  --channel_independence $channel_independence \
 
 python -u ../run.py \
   --is_training 1 \
@@ -146,4 +142,3 @@ python -u ../run.py \
   --down_sampling_window $down_sampling_window \
   --down_sampling_method conv \
   --top_k $top_k \
-  --channel_independence $channel_independence \

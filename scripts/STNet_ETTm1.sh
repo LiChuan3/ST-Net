@@ -3,19 +3,19 @@ export CUDA_VISIBLE_DEVICES=0
 model_name=STNet
 
 seq_len=96
-e_layers=3
-num_layers_intra_trend=2
-num_layers_intra_season=2
+e_layers=4
+num_layers_intra_trend=1
+num_layers_intra_season=1
 season_top_k=3
 num_kernels=3
-num_experts=5
-patch_sizes=(12 8 6 4 2)
-choose_k=3
+num_experts=3
+patch_sizes=(8 6 4)
+choose_k=1
 down_sampling_layers=2
 down_sampling_window=2
 learning_rate=0.01
 d_model=16
-d_ff=16
+d_ff=32
 batch_size=128
 
 python -u ../run.py \
@@ -46,7 +46,7 @@ python -u ../run.py \
   --learning_rate $learning_rate \
   --down_sampling_layers $down_sampling_layers \
   --down_sampling_window $down_sampling_window \
-  --down_sampling_method avg \
+  --down_sampling_method conv \
 
 
 python -u ../run.py \
@@ -77,7 +77,7 @@ python -u ../run.py \
   --learning_rate $learning_rate \
   --down_sampling_layers $down_sampling_layers \
   --down_sampling_window $down_sampling_window \
-  --down_sampling_method avg \
+  --down_sampling_method conv \
 
 python -u ../run.py \
   --is_training 1 \
@@ -107,7 +107,7 @@ python -u ../run.py \
   --learning_rate $learning_rate \
   --down_sampling_layers $down_sampling_layers \
   --down_sampling_window $down_sampling_window \
-  --down_sampling_method avg \
+  --down_sampling_method conv \
 
 python -u ../run.py \
   --is_training 1 \
@@ -137,5 +137,5 @@ python -u ../run.py \
   --learning_rate $learning_rate \
   --down_sampling_layers $down_sampling_layers \
   --down_sampling_window $down_sampling_window \
-  --down_sampling_method avg \
+  --down_sampling_method conv \
 

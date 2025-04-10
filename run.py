@@ -38,7 +38,7 @@ if __name__ == '__main__':
     parser.add_argument('--inverse', action='store_true', help='inverse output data', default=False)
     parser.add_argument('--seasonal_patterns', type=str, default='Monthly', help='subset for M4')
 
-    # DMMFNet
+    # STNet
     parser.add_argument('--e_layers', type=int, default=3, help='num of encoder layers')
     parser.add_argument('--num_layers_intra_trend', type=int, default=1, help='num of Trend IPM layers')
     parser.add_argument('--num_layers_intra_season', type=int, default=1, help='num of Seasonal ITC layers')

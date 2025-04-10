@@ -18,7 +18,6 @@ d_model=16
 d_ff=32
 batch_size=32
 
-
 python -u ../run.py \
   --is_training 1 \
   --root_path ../dataset/ETT-small/ \

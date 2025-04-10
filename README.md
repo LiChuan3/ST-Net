@@ -10,7 +10,7 @@ We introduce ST-Net, a two-part system that separates seasonal and trend compone
 
 ### 1.1 Architecture
 
-Dual-branch architecture consists of an MLP-based linear stream and a CNN-based non-linear stream.
+Dual-branch architecture consists of an MLP-based trend stream and a CNN-based seasonal stream.
 
 <p align="center">
 <img src="./figures/STNet.png" alt="" align=center />

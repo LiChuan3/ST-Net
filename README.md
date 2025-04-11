@@ -12,6 +12,7 @@ We introduce ST-Net, a two-part system that separates seasonal and trend compone
 
 This architecture consists of three core components: (1) Data preprocessing layer, (2) Stacked ST-Block with residual connections, which adopts a dual-branch structure, focusing separately on seasonal and trend components for differentiated modeling, and (3) Predictor, used for the
 final time series forecasting output.
+
 ST-Block，a dual-branch architecture consists of an MLP-based trend stream and a CNN-based seasonal stream.
 
 <p align="center">

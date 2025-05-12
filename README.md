@@ -1,39 +1,18 @@
 <div align="center">
-  <h2><b> ST-Net: Dual-Branch Encoding with Seasonal-Trend Decomposition for Time Series Forecasting </b></h2>
+  <h2><b> (ICIC2025 Oral)ST-Net: Dual-Path Encoding with Seasonal-Trend Decomposition for Long-Term Time Series Forecasting </b></h2>
 </div>
 <div align="center">
 </div>
 
-## 1. Model Overview
+### This is an offical implementation of "ST-Net: Dual-Path Encoding with Seasonal-Trend Decomposition for Long-Term Time Series Forecasting" 
 
-We introduce ST-Net, a two-part system that separates seasonal and trend components using two specialized encoders: a CNN (Intra Time Image Convolutional) for capturing non-linear seasonal patterns and an MLP (Intra-Patch Mixture-of-Experts) for identifying linear trends.
-
-### 1.1 Architecture
-
-This architecture consists of three core components: (1) Data preprocessing layer, (2) Stacked ST-Block with residual connections, which adopts a dual-branch structure, focusing separately on seasonal and trend components for differentiated modeling, and (3) Predictor, used for the
-final time series forecasting output.
-
-ST-Block，a dual-branch architecture consists of an MLP-based trend stream and a CNN-based seasonal stream.
+## 1. Overall Architecture
 
 <p align="center">
-<img src="./figures/STNet.png" alt="" align=center />
-</p>
-
-### IPM 
-The IPM module adopts a hybrid expert architecture based on multi-granularity patch division. Each PatchExpert processes a single granularity patch, integrating both intra-patch and inter-patch trend information. Through multi-expert fusion, it accurately models trend features.
-<p align="center">
-<img src="./figures/IPM.png" alt="" align=center />
-</p>
-
-### ITC 
-The ITC module employs multi-cycle analysis to extract the main cyclical components, performs 2D tensor reorganization on the time series, and uses multi-scale lateral and longitudinal decomposition convolutions. It focuses on extracting seasonal information within cycles and between cycles, and finally integrates them for effective seasonal component modeling.
-<p align="center">
-<img src="./figures/ITC.png" alt="" align=center />
+<img src="./figures/STNet.png" alt="" style="width: 80%;" align=center />
 </p>
 
 ## 2. Results
-
-### 2.1 Forecasting with Unified Experimental Settings
 
 In the unified experimental settings, ST-Net achieves the best performance on 75% of the cases using the MSE metric and 62.5% of the cases using the MAE metric.
 
@@ -41,20 +20,6 @@ In the unified experimental settings, ST-Net achieves the best performance on 75
 <img src="./figures/Result.png" alt="" style="width: 80%;" align=center />
 </p>
 
-### 2.2 Transfer Learning
-Pretraining on source datasets and evaluating through zero-shot prediction and fine-tuning demonstrates excellent generalization and transferability. The partial fine-tuning strategy is a lightweight method
-that requires fewer computational resources and reduces the number of parameters by 70.1%. Despite this, it achieves prediction accuracy nearly as high as PatchTST full-tuning, showing that ST-Net’s dual-branch architecture effectively captures transferable seasonal-trend patterns.
-
-<p align="center">
-<img src="./figures/Transfer Result.png" alt="" style="width: 80%;" align=center />
-</p>
-
-### 2.3 Ablation Study
-The results of transfer learning: Effect of Each Module in ST-Net, with Downsampling (shortened to D-s).
-
-<p align="center">
-<img src="./figures/Ablation Study.png" alt="" style="width: 80%;" align=center />
-</p>
 
 ## 3. Getting Started
 

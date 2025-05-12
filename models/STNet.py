@@ -50,7 +50,7 @@ class DFT_series_decomp(nn.Module):
         return x_season, x_trend
 
 
-class ITCs(nn.Module):
+class PIC(nn.Module):
     def __init__(self, configs):
         super().__init__()
         self.season_top_k = configs.season_top_k
@@ -105,7 +105,7 @@ class ITCs(nn.Module):
             x = self.single_layer_forward(x, layer) + x
         return x + residual 
 
-class TrendPatchExpert(nn.Module):
+class PatchMLP(nn.Module):
     def __init__(self, d_model,  d_ff, patch_size, dropout=0.1):
         super().__init__()
         self.patch_size = patch_size
@@ -114,14 +114,14 @@ class TrendPatchExpert(nn.Module):
         # Intra-Patch MLP
         self.intra_mlp = nn.Sequential(
             nn.Linear(patch_size * d_model, d_ff),
-            #nn.GELU(), w/o Act.
+            nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(d_ff, patch_size * d_model),
         )
         # Inter-Patch MLP
         self.inter_mlp = nn.Sequential(
             nn.Linear(d_model, d_ff),
-            #nn.GELU(), w/o Act.
+            nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(d_ff, d_model),
         )
@@ -158,11 +158,11 @@ class TrendPatchExpert(nn.Module):
 
         return output + x
 
-class Inter_Patch_MoE(nn.Module):
+class APM(nn.Module):
     def __init__(self, d_model, d_ff, num_experts, patch_sizes, k=2, dropout=0.3, gate_scales=None):
         super().__init__()
         self.experts = nn.ModuleList([
-            TrendPatchExpert(d_model, d_ff, ps, dropout=dropout)
+            PatchMLP(d_model, d_ff, ps, dropout=dropout)
             for ps in patch_sizes
         ])
         self.gate_scales = gate_scales if gate_scales else patch_sizes
@@ -227,14 +227,14 @@ class Inter_Patch_MoE(nn.Module):
                 output[batch_idx] += expert_out * gate[batch_idx].view(-1, 1, 1)
         return output
 
-class IPMs(nn.Module):
+class APMs(nn.Module):
     def __init__(self, configs):
         super().__init__()
         num_layers = configs.num_layers_intra_trend
         d_model = configs.d_model
 
         self.layers = nn.ModuleList([
-            Inter_Patch_MoE(
+            APM(
                 d_model=d_model,
                 d_ff=configs.d_ff,
                 num_experts=configs.num_experts,
@@ -284,9 +284,9 @@ class MultiScaleMixer(nn.Module):
                 mixed_series.append(downsampled)
         return mixed_series
 
-class STblock(nn.Module):
+class DPFE(nn.Module):
     def __init__(self, configs):
-        super(STblock, self).__init__()
+        super(DPFE, self).__init__()
         self.seq_len = configs.seq_len
         self.pred_len = configs.pred_len
         self.down_sampling_window = configs.down_sampling_window
@@ -307,9 +307,9 @@ class STblock(nn.Module):
                 nn.Linear(in_features=configs.d_ff, out_features=configs.d_model),
             )
 
-        self.seasonal_feature_extraction = ITCs(configs)
+        self.seasonal_feature_extraction = PIC(configs)
 
-        self.trend_feature_extraction = IPMs(configs)
+        self.trend_feature_extraction = APMs(configs)
 
         self.mixing_multi_scale_series = MultiScaleMixer(configs)
 
@@ -359,7 +359,7 @@ class Model(nn.Module):
         self.pred_len = configs.pred_len
         self.down_sampling_window = configs.down_sampling_window
         self.channel_independence = configs.channel_independence
-        self.ST_blocks = nn.ModuleList([STblock(configs)
+        self.ST_blocks = nn.ModuleList([DPFE(configs)
                                          for _ in range(configs.e_layers)])
 
         self.enc_in = configs.enc_in

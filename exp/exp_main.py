@@ -15,7 +15,7 @@ from utils.dtw_metric import dtw, accelerated_dtw
 
 warnings.filterwarnings('ignore')
 
-class DynamicFrequencyTimeLoss(nn.Module):
+class Fourier_Enhanced_Loss(nn.Module):
     def forward(self, outputs, targets):
         loss_tmp = F.mse_loss(outputs, targets)
         fft_diff = torch.fft.rfft(outputs, dim=1) - torch.fft.rfft(targets, dim=1)
@@ -43,7 +43,7 @@ class Exp_Time_Series_Forecast(Exp_Basic):
         return model_optim
 
     def _select_criterion(self):
-        criterion = DynamicFrequencyTimeLoss()
+        criterion = Fourier_Enhanced_Loss()
         return criterion
 
 

@@ -13,7 +13,6 @@ from utils.augmentation import run_augmentation_single
 
 warnings.filterwarnings('ignore')
 
-
 class Dataset_ETT_hour(Dataset):
     def __init__(self, args, root_path, flag='train', size=None,
                  features='S', data_path='ETTh1.csv',

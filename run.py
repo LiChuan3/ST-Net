@@ -39,14 +39,10 @@ if __name__ == '__main__':
     parser.add_argument('--seasonal_patterns', type=str, default='Monthly', help='subset for M4')
 
     # STNet
-    parser.add_argument('--e_layers', type=int, default=3, help='num of encoder layers')
-    parser.add_argument('--num_layers_intra_trend', type=int, default=1, help='num of Trend IPM layers')
-    parser.add_argument('--num_layers_intra_season', type=int, default=1, help='num of Seasonal ITC layers')
-    parser.add_argument('--season_top_k', type=int, default=3, help='for seasonal figures')
-    parser.add_argument('--num_kernels', type=int, default=3, help='for Seasonal Feature extraction')
-    parser.add_argument('--num_experts', type=int, default=1, help='the chosen patch size for feature extraction')
+    parser.add_argument('--e_layers', type=int, default=3, help='num of DPFE layers')
+    parser.add_argument('--season_top_k', type=int, default=5, help='for seasonal figures')
+    parser.add_argument('--num_kernels', type=int, default=4, help='for Seasonal Feature extraction')
     parser.add_argument('--patch_sizes', nargs='+', type=int, default=[8, 6, 4], help='the patch size list')
-    parser.add_argument('--choose_k', type=int, default=1, help='choose topk expers from MOE')
     parser.add_argument('--down_sampling_layers', type=int, default=2, help='num of down sampling layers')
     parser.add_argument('--down_sampling_window', type=int, default=2, help='down sampling window size')
     parser.add_argument('--down_sampling_method', type=str, default='conv',
@@ -145,7 +141,7 @@ if __name__ == '__main__':
         for ii in range(args.itr):
             # setting record of experiments
             exp = Exp(args)  # set experiments
-            setting = '{}_{}_{}_ft{}_sl{}_pl{}_dm{}_el{}_nt{}_ns{}_stk{}_nk{}_ne{}_ck{}_dl{}_dm{}_df{}_eb{}_dt{}_{}_{}'.format(
+            setting = '{}_{}_{}_ft{}_sl{}_pl{}_dm{}_el{}_stk{}_nk{}_dl{}_dm{}_df{}_eb{}_dt{}_{}_{}'.format(
                 args.model_id,
                 args.model,
                 args.data,
@@ -154,12 +150,8 @@ if __name__ == '__main__':
                 args.pred_len,
                 args.d_model,
                 args.e_layers,
-                args.num_layers_intra_trend,
-                args.num_layers_intra_season,
                 args.season_top_k,
                 args.num_kernels,
-                args.num_experts,
-                args.choose_k,
                 args.down_sampling_layers,
                 args.down_sampling_method,
                 args.d_ff,

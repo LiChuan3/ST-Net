@@ -6,9 +6,35 @@ from layers.StandardNorm import Normalize
 from layers.Conv import MultiCycleDecompConv
 import math
 
-def FFT_for_seasonal_Period(x, k=3):
+class DFT_series_decomp(nn.Module):
     """
-    Used for detecting the main cycle of the input sequence in the ITC module.
+    The series decomposition method used in ST-block.
+    """
+    def __init__(self, top_k):
+        super().__init__()
+        self.top_k = top_k
+
+    def forward(self, x):
+        # [B,T,C]
+        x = x.permute(0, 2, 1)  #[B,C,T]
+        xf = torch.fft.rfft(x, dim=2)  # [B,C,T//2+1]
+
+        freq = torch.abs(xf)
+        freq[:, :, 0] = 0  # Remove DC
+        topk_freq, _ = torch.topk(freq, self.top_k, dim=2)
+        threshold = topk_freq[:, :, -1].unsqueeze(2)
+        xf[freq < threshold] = 0
+
+        x_season = torch.fft.irfft(xf, n=x.size(2), dim=2)  # [B,C,T]
+        x_trend = x - x_season
+        #[B,T,C]
+        x_season = x_season.permute(0, 2, 1)
+        x_trend = x_trend.permute(0, 2, 1)
+        return x_season, x_trend
+
+def DFT_for_seasonal_Period(x, k=5):
+    """
+    Used for detecting the main cycle of the input sequence in the PIC module.
     """
     with torch.no_grad():
         xf = torch.fft.rfft(x, dim=1)
@@ -22,51 +48,21 @@ def FFT_for_seasonal_Period(x, k=3):
     del xf 
     return periods, top_amplitudes
 
-class DFT_series_decomp(nn.Module):
-    """
-    The series decomposition method used in ST-block.
-    """
-
-    def __init__(self, top_k):
-        super().__init__()
-        self.top_k = top_k
-
-    def forward(self, x):
-        # [B,T,C]
-        x = x.permute(0, 2, 1)  #[B,C,T] 
-        xf = torch.fft.rfft(x, dim=2)  # [B,C,T//2+1]
-
-        freq = torch.abs(xf)
-        freq[:, :, 0] = 0  # Remove DC 
-        topk_freq, _ = torch.topk(freq, self.top_k, dim=2)
-        threshold = topk_freq[:, :, -1].unsqueeze(2)
-        xf[freq < threshold] = 0
-
-        x_season = torch.fft.irfft(xf, n=x.size(2), dim=2)  # [B,C,T]
-        x_trend = x - x_season
-        #[B,T,C]
-        x_season = x_season.permute(0, 2, 1)
-        x_trend = x_trend.permute(0, 2, 1)
-        return x_season, x_trend
-
-
 class PIC(nn.Module):
     def __init__(self, configs):
         super().__init__()
         self.season_top_k = configs.season_top_k
-        self.num_layers = configs.num_layers_intra_season
 
-        self.layers = nn.ModuleList([
-            nn.Sequential(
+        self.layer = nn.Sequential(
                 MultiCycleDecompConv(configs.d_model, configs.d_ff, num_kernels=configs.num_kernels),
-                nn.GELU(),
+                nn.ReLU(),
                 MultiCycleDecompConv(configs.d_ff, configs.d_model, num_kernels=configs.num_kernels)
-            ) for _ in range(self.num_layers)
-        ])
-    def single_layer_forward(self, x, layer):
+            )
+    def forward(self, x):
         B, T, N = x.shape
-        # FFT
-        periods, period_weights = FFT_for_seasonal_Period(x, self.season_top_k)  # [k], [B, k]
+
+        # DFT
+        periods, period_weights = DFT_for_seasonal_Period(x, self.season_top_k)  # [k], [B, k]
         period_res = []
         for i in range(self.season_top_k):
             p = periods[i]
@@ -82,7 +78,7 @@ class PIC(nn.Module):
             num_blocks = (T + pad_length) // p
             x_2d = x_pad.reshape(B, num_blocks, p, N).permute(0, 3, 1, 2)  # [B, N, num_blocks, p]
             # conv
-            x_2d = layer(x_2d)
+            x_2d = self.layer(x_2d)
             # 2D -> 1D
             x_1d = x_2d.permute(0, 2, 3, 1).reshape(B, -1, N)
             x_1d = x_1d[:, :T, :]  # trunck
@@ -97,20 +93,15 @@ class PIC(nn.Module):
             dim=-1
         ).sum(dim=-1)
 
-        return weighted_res
-
-    def forward(self, x):
-        residual = x 
-        for layer in self.layers:
-            x = self.single_layer_forward(x, layer) + x
-        return x + residual 
+        return x + weighted_res
 
 class PatchMLP(nn.Module):
-    def __init__(self, d_model,  d_ff, patch_size, dropout=0.1):
+    def __init__(self, d_model,  d_ff, patch_size, dropout):
         super().__init__()
-        self.patch_size = patch_size
         self.d_model = d_model
-
+        self.d_ff = d_ff
+        self.patch_size = patch_size
+        self.dropout = dropout
         # Intra-Patch MLP
         self.intra_mlp = nn.Sequential(
             nn.Linear(patch_size * d_model, d_ff),
@@ -156,100 +147,73 @@ class PatchMLP(nn.Module):
 
         output = fused.view(B, T_padded, D)[:, :T, :]  # [B, T, D]
 
-        return output + x
+        return output
 
 class APM(nn.Module):
-    def __init__(self, d_model, d_ff, num_experts, patch_sizes, k=2, dropout=0.3, gate_scales=None):
+    def __init__(self, configs):
         super().__init__()
-        self.experts = nn.ModuleList([
-            PatchMLP(d_model, d_ff, ps, dropout=dropout)
-            for ps in patch_sizes
+        self.patch_sizes = configs.patch_sizes
+        self.d_model = configs.d_model
+        self.d_ff = configs.d_ff
+        self.dropout = configs.dropout
+
+        self.patchmlp = nn.ModuleList([
+            PatchMLP(self.d_model, self.d_ff, ps, dropout=self.dropout)
+            for ps in self.patch_sizes
         ])
-        self.gate_scales = gate_scales if gate_scales else patch_sizes
-        self.num_stats = 3
-        gate_input_dim = d_model * (1 + len(self.gate_scales) * self.num_stats)
+
+        self.num_stats = 3   # maxpool, minpool, stdpool
+        gate_input_dim = self.d_model * (1 + len(self.patch_sizes) * self.num_stats)
         self.gate = nn.Sequential(
-            nn.Linear(gate_input_dim, d_ff),
+            nn.Linear(gate_input_dim, self.d_ff),
             nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(d_ff, num_experts)
+            nn.Dropout(self.dropout),
+            nn.Linear(self.d_ff, len(self.patch_sizes))  # score of patch sizes
         )
-        self.softmax = nn.Softmax(dim=-1)
-        self.k = k
 
     def _extract_scale_features(self, x):
         B, T, D = x.shape
-        features = [x.mean(dim=1)]  # GAP
+        features = []
+        # GAP
+        global_gap = x.mean(dim=1)  # [B, D]
+        global_gap_avg = global_gap.mean(dim=0, keepdim=True)  # [1, D]
+        features.append(global_gap_avg)
 
-        for ps in self.gate_scales:
-            # padding
+        for ps in self.patch_sizes:
             pad_size = (ps - (T % ps)) % ps
-            x_pad = F.pad(x, (0, 0, 0, pad_size))
+            x_pad = F.pad(x, (0, 0, 0, pad_size))  # [B, T_padded, D]
+            T_padded = T + pad_size
+            N = T_padded // ps
+            patches = x_pad.view(B, N, ps, D)  # [B, N, W, D]
 
-            # patch-wise gating information
-            patches = x_pad.view(B, -1, ps, D)  # [B, num_patch, ps, D]
-            patch_min = patches.amin(dim=2)
-            patch_std = patches.std(dim=2)
-            patch_max = patches.amax(dim=2)
+            patch_min = patches.amin(dim=2).mean(dim=1)  # [B, D]
+            patch_min_avg = patch_min.mean(dim=0, keepdim=True)  # [1, D]
 
-            # cat
-            features.extend([
-                patch_min.amin(dim=1),  
-                patch_std.mean(dim=1),
-                patch_max.amax(dim=1)
-            ])
+            # Patch 的 std 统计量
+            patch_std = patches.std(dim=2).mean(dim=1)  # [B, D]
+            patch_std_avg = patch_std.mean(dim=0, keepdim=True)  # [1, D]
 
-        return torch.cat(features, dim=1)  # [B, gate_input_dim]
+            # Patch 的 max 统计量
+            patch_max = patches.amax(dim=2).mean(dim=1)  # [B, D]
+            patch_max_avg = patch_max.mean(dim=0, keepdim=True)  # [1, D]
 
-    def noisy_topk_gating(self, x):
+            features.extend([patch_min_avg, patch_std_avg, patch_max_avg])
+
+        # [1, gate_input_dim]
+        gate_input = torch.cat(features, dim=1)  # [1, d_model*(1+3*K)]
+        return gate_input
+
+    def adaptive_gating(self, x):
         gate_input = self._extract_scale_features(x)
-        gate_logits = self.gate(gate_input)
-        if self.training:
-            gate_logits += torch.randn_like(gate_logits) * 0.1
-        topk_logits, topk_indices = gate_logits.topk(self.k, dim=-1)  # [B, k]
-        topk_gates = self.softmax(topk_logits)  # [B, k]
-        return topk_indices, topk_gates
+        gate_logits = self.gate(gate_input)  # [1, num_patch_sizes]
+        choose_index = gate_logits.argmax().item()
+        return choose_index
 
     def forward(self, x):
-        B, T, D = x.shape
-        topk_indices, topk_gates = self.noisy_topk_gating(x)  # [B, k]
-        output = torch.zeros(B, T, D, device=x.device)
-        
-        for i in range(self.k):
-            expert_idx = topk_indices[:, i]  
-            gate = topk_gates[:, i]  
-            
-            unique_experts = expert_idx.unique()
-            for expert_id in unique_experts:
-                batch_idx = torch.where(expert_idx == expert_id)[0]
-                x_subset = x[batch_idx]  
-                expert_out = self.experts[expert_id](x_subset)  
-                output[batch_idx] += expert_out * gate[batch_idx].view(-1, 1, 1)
-        return output
-
-class APMs(nn.Module):
-    def __init__(self, configs):
-        super().__init__()
-        num_layers = configs.num_layers_intra_trend
-        d_model = configs.d_model
-
-        self.layers = nn.ModuleList([
-            APM(
-                d_model=d_model,
-                d_ff=configs.d_ff,
-                num_experts=configs.num_experts,
-                patch_sizes=configs.patch_sizes,
-                k=configs.choose_k,
-                dropout=configs.dropout
-            ) for _ in range(num_layers)
-        ])
-        self.norm = nn.LayerNorm(d_model)
-
-    def forward(self, x):
-        residual = x
-        for layer in self.layers:
-            x = layer(x) + x
-        return self.norm(x + residual)
+        choose_index = self.adaptive_gating(x)
+        expert = self.patchmlp[choose_index]
+        output = expert(x)
+        return output + x
 
 class MultiScaleMixer(nn.Module):
 
@@ -292,7 +256,7 @@ class DPFE(nn.Module):
         self.down_sampling_window = configs.down_sampling_window
 
         self.layer_norm = nn.LayerNorm(configs.d_model)
-        self.dropout = nn.Dropout(configs.dropout)
+        self.dropout = configs.dropout
         self.channel_independence = configs.channel_independence
 
         if configs.decomp_method == "dft_decomp":
@@ -308,10 +272,7 @@ class DPFE(nn.Module):
             )
 
         self.seasonal_feature_extraction = PIC(configs)
-
-        self.trend_feature_extraction = APMs(configs)
-
-        self.mixing_multi_scale_series = MultiScaleMixer(configs)
+        self.trend_feature_extraction = APM(configs)
 
         self.out_cross_layer = nn.Sequential(
             nn.Linear(in_features=configs.d_model, out_features=configs.d_ff),
@@ -345,7 +306,7 @@ class DPFE(nn.Module):
             out = out_season + out_trend
             out = self.out_cross_layer(out)
             out_list.append(out)
-        out_list = self.mixing_multi_scale_series(out_list)
+
         out_list = [out + x for out, x in zip(out_list, x_list)]
         return out_list
 
@@ -359,8 +320,10 @@ class Model(nn.Module):
         self.pred_len = configs.pred_len
         self.down_sampling_window = configs.down_sampling_window
         self.channel_independence = configs.channel_independence
-        self.ST_blocks = nn.ModuleList([DPFE(configs)
-                                         for _ in range(configs.e_layers)])
+        self.e_layers = configs.e_layers
+        self.DPFEs = nn.ModuleList([DPFE(configs)
+                                         for _ in range(self.e_layers)])
+        self.mixing_multi_scale_series = MultiScaleMixer(configs)
 
         self.enc_in = configs.enc_in
 
@@ -379,15 +342,14 @@ class Model(nn.Module):
             ]
         )
 
-        self.predict_layers = torch.nn.ModuleList(
-            [
-                torch.nn.Linear(
-                    configs.seq_len // (configs.down_sampling_window ** i),
-                    configs.pred_len,
-                )
-                for i in range(configs.down_sampling_layers + 1)
-            ]
-        )
+        self.predict_layers = torch.nn.ModuleList([
+            nn.Sequential(
+                torch.nn.Linear(configs.seq_len // (configs.down_sampling_window ** i), configs.pred_len),
+                nn.GELU(),
+                torch.nn.Linear(configs.pred_len, configs.pred_len)
+            )
+            for i in range(configs.down_sampling_layers + 1)
+        ])
 
         self.fusion_layer = nn.Linear((configs.down_sampling_layers + 1) * configs.d_model,
                                           configs.d_model)
@@ -395,9 +357,15 @@ class Model(nn.Module):
         if self.channel_independence:
             self.projection_layer = nn.Linear(
                 configs.d_model, 1, bias=True)
+
+            self.projection_layer2 = nn.Linear(
+                (configs.down_sampling_layers + 1) * configs.d_model, 1, bias=True)
         else:
             self.projection_layer = nn.Linear(
                 configs.d_model, configs.c_out, bias=True)
+
+            self.projection_layer2 = nn.Linear(
+                (configs.down_sampling_layers + 1) * configs.d_model, configs.c_out, bias=True)
 
             self.out_res_layers = torch.nn.ModuleList([
                 torch.nn.Linear(
@@ -488,14 +456,16 @@ class Model(nn.Module):
 
         # Concat
         concat_dec_out = torch.cat(dec_out_list, dim=-1)  # [B*C, pred_len, (layers+1)*d_model]
-        fused_dec_out = self.fusion_layer(concat_dec_out)  # [B*C, pred_len, d_model]
+        # fused_dec_out = self.fusion_layer(concat_dec_out)  # [B*C, pred_len, d_model]
 
         if self.channel_independence:
-            dec_out = self.projection_layer(fused_dec_out)  # [B*C, pred_len, 1]
+            # dec_out = self.projection_layer(concat_dec_out)  # [B*C, pred_len, 1]
+            dec_out = self.projection_layer2(concat_dec_out)  # [B*C, pred_len, (layers+1)*d_model->1]
+
             # [B, pred_len, C]
             dec_out = dec_out.reshape(B, self.configs.c_out, self.pred_len).permute(0, 2, 1).contiguous()
         else:
-            dec_out = self.projection_layer(fused_dec_out)  # [B, pred_len, C]
+            dec_out = self.projection_layer2(concat_dec_out)  # [B, pred_len, (layers+1)*d_model->C]
 
         return dec_out
 
@@ -537,7 +507,9 @@ class Model(nn.Module):
                 enc_out_list.append(enc_out)
 
         for i in range(self.layer):
-            enc_out_list = self.ST_blocks[i](enc_out_list)
+            enc_out_list = self.DPFEs[i](enc_out_list)
+
+        enc_out_list = self.mixing_multi_scale_series(enc_out_list)
 
         # [B * C, length, d_model] -> [B*C,length,1] -> [B,length,C]
         dec_out = self.future_multi_mixing(B, enc_out_list)

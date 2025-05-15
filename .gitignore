@@ -5,3 +5,5 @@ result.txt
 __pycache__/
 checkpoints/
 .idea/
+result_forecast.txt
+results/

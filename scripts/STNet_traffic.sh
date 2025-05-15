@@ -4,12 +4,9 @@ model_name=STNet
 
 seq_len=96
 e_layers=3
-num_layers_intra_trend=1
-num_layers_intra_season=1
-season_top_k=3
-num_kernels=3
-num_experts=5
-patch_sizes=(12 8 6 4 2)
+season_top_k=5
+num_kernels=4
+patch_sizes=(8 6 4)
 choose_k=1
 down_sampling_layers=2
 down_sampling_window=2
@@ -31,13 +28,9 @@ python -u ../run.py \
   --label_len 0 \
   --pred_len 96 \
   --e_layers $e_layers \
-  --num_layers_intra_trend $num_layers_intra_trend \
-  --num_layers_intra_season $num_layers_intra_season \
   --season_top_k $season_top_k \
   --num_kernels $num_kernels \
-  --num_experts $num_experts \
   --patch_sizes "${patch_sizes[@]}" \
-  --choose_k $choose_k \
   --enc_in 862 \
   --dec_in 862 \
   --c_out 862 \
@@ -66,13 +59,9 @@ python -u ../run.py \
   --label_len 0 \
   --pred_len 192 \
   --e_layers $e_layers \
-  --num_layers_intra_trend $num_layers_intra_trend \
-  --num_layers_intra_season $num_layers_intra_season \
   --season_top_k $season_top_k \
   --num_kernels $num_kernels \
-  --num_experts $num_experts \
   --patch_sizes "${patch_sizes[@]}" \
-  --choose_k $choose_k \
   --enc_in 862 \
   --dec_in 862 \
   --c_out 862 \
@@ -101,13 +90,9 @@ python -u ../run.py \
   --label_len 0 \
   --pred_len 336 \
   --e_layers $e_layers \
-  --num_layers_intra_trend $num_layers_intra_trend \
-  --num_layers_intra_season $num_layers_intra_season \
   --season_top_k $season_top_k \
   --num_kernels $num_kernels \
-  --num_experts $num_experts \
   --patch_sizes "${patch_sizes[@]}" \
-  --choose_k $choose_k \
   --enc_in 862 \
   --dec_in 862 \
   --c_out 862 \
@@ -136,13 +121,9 @@ python -u ../run.py \
   --label_len 0 \
   --pred_len 720 \
   --e_layers $e_layers \
-  --num_layers_intra_trend $num_layers_intra_trend \
-  --num_layers_intra_season $num_layers_intra_season \
   --season_top_k $season_top_k \
   --num_kernels $num_kernels \
-  --num_experts $num_experts \
   --patch_sizes "${patch_sizes[@]}" \
-  --choose_k $choose_k \
   --enc_in 862 \
   --dec_in 862 \
   --c_out 862 \
